@@ -6,7 +6,7 @@ if (file.exists(file.path("R", "internals.R"))) {
   source(file.path("R", "benchmark.R"))
   load(file.path("data", "cure_latency_demo.rda"))
 } else {
-  library(cureforest)
+  library(curelearning)
   data(cure_latency_demo)
 }
 
@@ -86,4 +86,13 @@ if (requireNamespace("randomForestSRC", quietly = TRUE)) {
     all(is.finite(direct_comparison$performance$C_index)),
     all(is.finite(direct_comparison$performance$Brier_8y))
   )
+  # Predictions must not change when test outcomes change. Scores should.
+  shuffled <- testing
+  shuffled$time <- rev(shuffled$time)
+  shuffled$event <- rev(shuffled$event)
+  shuffled_comparison <- compare_forest_fits(
+    fit_cure, fit_rsf, newdata=shuffled, n.cores=1L)
+  stopifnot(isTRUE(all.equal(
+    direct_comparison$predictions$randomForestSRC_tail,
+    shuffled_comparison$predictions$randomForestSRC_tail,tolerance=1e-12)))
 }

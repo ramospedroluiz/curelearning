@@ -1,3 +1,29 @@
+# curelearning 0.1.0
+
+- First release candidate under the new package name. The statistical methods,
+  exported fitting functions, and prediction interfaces are unchanged from
+  cureforest 0.2.0.9002. Use `library(curelearning)` in new work.
+- The entries below record the history of the predecessor package.
+
+# cureforest 0.2.0.9002 (development)
+
+- Added `cureknn()` for late survival, with independent tuning, a local
+  follow-up check and access to the neighbors of each component.
+
+# cureforest 0.2.0.9001 (development)
+
+- Added independent acceptance to `curecurveboost()`. The default `selection
+  = "gated"` splits the validation pool into candidate selection and acceptance
+  samples. A candidate is retained only when a one-sided paired lower bound
+  for its mean Brier improvement is positive; otherwise round zero is returned.
+- Kept `selection = "minimum"` for the earlier rule. The internal fitting
+  engine retains its earlier default so existing benchmark scripts do not
+  silently change their statistical procedure.
+- Added gate diagnostics, disjoint split indices, a minimum-gain option, and
+  tests that gate outcomes cannot affect training or candidate selection.
+- The acceptance bound is approximate, not a new inferential guarantee for
+  cure forests. The cure/tail anchor remains unchanged.
+
 # cureforest 0.1.3
 
 - Corrected forest survival aggregation: each tree curve is first constrained
@@ -47,3 +73,12 @@
   cure target still require negligible forest and tail bias.
 - Added a reproducible introductory vignette, package citation, CRAN submission
   notes, and portable API tests.
+# cureforest 0.2.0
+
+* Added the experimental `cureboost()` interface for stagewise estimation of
+  the observable finite-tail target using mature-tail residual trees.
+* Added validation-based early stopping, monotone training-loss diagnostics,
+  `predict.cureboost()`, and `cureboost_importance()`.
+* The first boosting implementation deliberately targets finite-tail survival
+  through cross-fitted IPCW pseudo-outcomes; it does not yet fit a separate
+  susceptible-latency component.

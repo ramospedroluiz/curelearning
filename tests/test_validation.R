@@ -1,4 +1,4 @@
-library(cureforest)
+library(curelearning)
 
 expect_error <- function(expr, pattern = NULL) {
   error <- tryCatch({

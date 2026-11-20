@@ -1,30 +1,44 @@
-# cureforest
+# curelearning
 
-[![R-CMD-check](https://github.com/ramospedroluiz/cureforest/actions/workflows/R-CMD-check.yaml/badge.svg)](https://github.com/ramospedroluiz/cureforest/actions/workflows/R-CMD-check.yaml)
+Statistical learning for cure models and long-term survival with right-censored data. Fit nearest neighbors (`cureknn()`), trees (`curetree()`), forests (`cureforest()`) and boosting models (`cureboost()` and `cureboost_joint()`) through a formula interface. The nearest-neighbor method estimates survival at specified times, not an individual cure probability.
 
-`cureforest` fits survival trees and random survival forests whose split rule
-targets differences in a finite-tail survival probability. With sufficiently
-mature follow-up and negligible residual susceptible survival in the chosen
-window, this target can be interpreted as a population-level cure fraction.
-
-The package does not classify an observed individual as biologically cured.
-Its estimand is a tail-supported probability, and the maturity controls are an
-essential part of the analysis.
-
-## Installation
-
-Install the development version from GitHub with:
+## Installation from GitHub
 
 ```r
-install.packages("remotes")
-remotes::install_github("ramospedroluiz/cureforest")
+# install.packages("remotes")  # if needed
+remotes::install_github("ramospedroluiz/curelearning", upgrade = "never")
+library(curelearning)
 ```
 
-After a CRAN release, installation will be available through:
+To reproduce a particular analysis, install the commit recorded with that
+analysis using the `ref` argument to `install_github()`.
+
+## Installation from a source archive
+
+Install the required dependencies (`survival`, `rpart` and `FNN`) and run:
 
 ```r
-install.packages("cureforest")
+install.packages("curelearning_0.1.0.tar.gz", repos = NULL, type = "source")
+library(curelearning)
 ```
+
+For new analyses use `library(curelearning)` or a qualified call such as `curelearning::cureforest()`. The original `cureforest` package is a separate historical distribution. The model functions and their prediction interfaces keep their names.
+
+## Nearest neighbors for late survival
+
+A runnable example with the included synthetic cohort:
+
+```r
+data(cure_latency_demo, package = "curelearning")
+train <- subset(cure_latency_demo, cohort == "train")
+patients <- head(subset(cure_latency_demo, cohort == "test"), 3)
+fit <- cureknn(survival::Surv(time, event) ~ age + stage + cure_marker,
+               data = train, times = c(7, 8, 9), seed = 1)
+predict(fit, patients)
+head(predict(fit, patients, type = "neighbors"))
+```
+
+The synthetic cohort has an administrative cutoff at year 10, so the example predicts at years 7--9. Extending the window to the cutoff can withhold a prediction. Unsupported estimates are missing, not zero. See `?cureknn` for the follow-up check, censoring model and fixed sample splits for temporal designs.
 
 ## Two-minute comparison with randomForestSRC
 
@@ -35,7 +49,7 @@ random-forest example:
 
 ```r
 install.packages("randomForestSRC")
-library(cureforest)
+library(curelearning)
 library(survival)
 
 data(cure_latency_demo)
@@ -66,7 +80,7 @@ and for the ordinary log-rank random survival forest, together with Brier
 scores and IBS. The complete script is installed with the package:
 
 ```r
-system.file("examples", "cureforest-vs-rsf.R", package = "cureforest")
+system.file("examples", "cureforest-vs-rsf.R", package = "curelearning")
 ```
 
 The example is a controlled illustration of the difference between cure and
@@ -76,7 +90,7 @@ log-rank splitting, not an empirical superiority claim.
 
 ```r
 library(survival)
-library(cureforest)
+library(curelearning)
 
 fit_tree <- curetree(
   Surv(time, status) ~ age + stage + biomarker,
@@ -116,6 +130,42 @@ predict(fit_forest, cancer_data, type = "susceptible", times = c(5, 8, 10))
 predict(fit_forest, cancer_data, type = "dynamic", times = c(5, 8, 10))
 ```
 
+## Tail-targeted cure boosting
+
+`cureboost()` adds shallow trees sequentially. Each tree corrects finite-tail
+structure not explained by the preceding trees, and every candidate daughter
+must satisfy the same follow-up maturity restrictions used by the cure forest.
+
+```r
+fit_boost <- cureboost(
+  form, train,
+  nrounds = 100,
+  learning.rate = 0.05,
+  maxdepth = 1,
+  nodesize = 80,
+  tail.start = 7,
+  tail.end = 9.5,
+  ipcw.model = "cox",
+  validation.fraction = 0.2,
+  early.stopping.rounds = 15,
+  seed = 2026
+)
+
+pred.boost <- predict(fit_boost, test, type = "cure")
+cureboost_importance(fit_boost)
+fit_boost$history
+```
+
+The complete console example is installed at:
+
+```r
+system.file("examples", "cureboost-example.R", package = "curelearning")
+```
+
+The current implementation estimates the observable finite-tail target using
+cross-fitted IPCW pseudo-outcomes. It does not yet fit a separate susceptible-
+latency component or return a complete survival curve.
+
 ## Covariate-dependent censoring
 
 For censoring that depends on observed covariates, a cross-fitted Cox model can
@@ -135,9 +185,9 @@ fit_ipcw <- randomforestcure(
 Alternatively, `ipcw.model = "user"` accepts a function `g.fun(t, newdata)`
 that returns `P(C > t | X)` for every row of `newdata`.
 
-## Predictions
+## Tree and forest predictions
 
-`predict()` supports:
+For fitted trees and forests, `predict()` supports:
 
 - `"cure"`: long-term survival or cure probability;
 - `"survival"`: population survival;
@@ -176,5 +226,5 @@ susceptible curves satisfy the mixture identity numerically.
 The original functions `survcure()` and `randomforestcure()` remain available
 for backward compatibility.
 
-See `vignette("cureforest-introduction", package = "cureforest")` for a complete
+See `vignette("curelearning-introduction", package = "curelearning")` for a complete
 reproducible example.

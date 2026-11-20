@@ -1,14 +1,8 @@
 # cureforest versus an ordinary random survival forest
 
-if (!requireNamespace("remotes", quietly = TRUE)) {
-  install.packages("remotes")
-}
-if (!requireNamespace("randomForestSRC", quietly = TRUE)) {
-  install.packages("randomForestSRC")
-}
-
-remotes::install_github("ramospedroluiz/cureforest", upgrade = "never")
-library(cureforest)
+if (!requireNamespace("randomForestSRC", quietly = TRUE))
+  stop("Install the optional randomForestSRC package to run this example.")
+library(curelearning)
 library(survival)
 
 data(cure_latency_demo)

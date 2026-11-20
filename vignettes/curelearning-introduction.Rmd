@@ -1,10 +1,10 @@
 ---
-title: "Cure-Fraction Survival Trees and Forests with cureforest"
+title: "Statistical Learning for Long-Term Survival with curelearning"
 author: "Pedro Luiz Ramos and Lucas Osses"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{Cure-Fraction Survival Trees and Forests with cureforest}
+  %\VignetteIndexEntry{Statistical Learning for Long-Term Survival with curelearning}
   %\VignetteEngine{knitr::rmarkdown}
   %\VignetteEncoding{UTF-8}
 ---
@@ -15,7 +15,7 @@ knitr::opts_chunk$set(collapse = TRUE, comment = "#>")
 
 ## Scope
 
-`cureforest` is designed for right-censored studies in which the scientific
+`curelearning` is designed for right-censored studies in which the scientific
 target is long-term event-free survival. For a fixed window, the directly
 identified target is an average of the population survival tail. It equals a
 cure fraction only when residual susceptible survival over that window is
@@ -27,7 +27,8 @@ The package supplies:
 1. `survcure()`, an honest cure-fraction survival tree;
 2. `randomforestcure()`, a randomized ensemble of honest trees;
 3. matched log-rank splitting through `splitrule = "logrank"`;
-4. population, susceptible, and dynamic-cure predictions.
+4. population, susceptible, and dynamic-cure predictions from trees and forests;
+5. neighbor-based late survival prediction (`cureknn()`) and boosting models.
 
 ## Simulated long-term survival data
 
@@ -36,7 +37,7 @@ and one variable that changes event timing among susceptible subjects.
 
 ```{r data}
 library(survival)
-library(cureforest)
+library(curelearning)
 
 set.seed(2401)
 n <- 600
@@ -58,6 +59,18 @@ dat <- data.frame(
   x_latency = x_latency,
   noise = noise
 )
+```
+
+## Predict survival from comparable patients
+
+The fitted horizons are in the same units as `time`. The two new patients provide baseline predictors only. When the neighbors do not have enough follow-up, `predict()` gives a reason instead of a numerical survival estimate.
+
+```{r knn}
+knn <- cureknn(Surv(time, status) ~ x_cure + x_latency + noise, dat,
+               times = c(7, 8, 9), k = c(50, 100), seed = 11)
+patients <- data.frame(x_cure = c(0.25, 0.75), x_latency = c("slow", "fast"), noise = 0)
+predict(knn, patients)
+head(predict(knn, patients, type = "neighbors"))
 ```
 
 ## Fit an honest tree
@@ -182,6 +195,40 @@ split to target cure or event-time separation. It is an explanatory example,
 not an empirical claim that one forest must dominate the other in every data
 set. The reported table contains the held-out C-index for both methods,
 together with Brier scores and IBS.
+
+## Optional finite-horizon curve refinement
+
+`curecurveboost()` first fits a CureForest anchor, then refines its implied
+susceptible curve using time-dependent log-hazard trees. Anchor fitting,
+correction fitting, early stopping, and final acceptance use disjoint samples.
+By default, half the validation pool selects one candidate and the other half
+accepts it only if a one-sided paired lower bound for Brier improvement is
+positive. Otherwise the round-zero curve is retained. The correction
+does not impose proportional hazards and does not change the tail estimate.
+
+```{r flexible-refinement, eval=FALSE}
+refined <- curecurveboost(
+  Surv(time, status) ~ x_cure + x_latency + noise, dat,
+  breaks = c(0, 1, 2, 3, 5, 7, 8, 9),
+  forest.control = list(tail.start = 7, tail.end = 9), seed = 11
+)
+predict(refined, dat[1:5, ], times = c(3, 5, 8))
+predict(refined, dat[1:5, ], type = "cure")  # unchanged anchor
+refined$gate                              # why correction was accepted/rejected
+```
+
+Use `selection = "minimum"` to reproduce the previous selection rule. The
+independent acceptance sample must not be reused to search among additional
+models. Its t-based bound is approximate and is not a finite-sample guarantee
+that harmful changes never occur.
+
+This is a development-stage predictive refinement, not an inferential
+extension of the forest theorems. No extrapolation beyond the last boundary
+is provided. Its benefit must be checked on a separate test sample against
+both the uncorrected forest and an appropriately tuned, unrestricted RSF.
+Use `outcome = "train"` for RSF prediction, preferably supplying predictors
+only: `outcome = "test"` recomputes leaf estimates from test outcomes and is
+not a locked-model out-of-sample comparison.
 
 ## Reporting recommendations
 

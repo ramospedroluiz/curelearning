@@ -30,7 +30,7 @@ The data-generating mechanism is recorded in
 probability, whereas the latency marker strongly changes early failure times
 without changing cure status. Administrative censoring occurs at time 10.
 }
-\source{Simulated by the cureforest authors for package illustration.}
+\source{Simulated by the package authors for package illustration.}
 \examples{
 data(cure_latency_demo)
 table(cure_latency_demo$cohort)

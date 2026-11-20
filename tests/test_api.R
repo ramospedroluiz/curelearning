@@ -3,7 +3,7 @@ if (file.exists(file.path("R", "internals.R"))) {
   source(file.path("R", "fit.R"))
   source(file.path("R", "predict.R"))
 } else {
-  library(cureforest)
+  library(curelearning)
 }
 
 simulate_cure_data <- function(n = 700, seed = 1) {
@@ -117,7 +117,7 @@ stopifnot(
 coherence_helper <- if (exists(".cfr_coherent_tree_survival")) {
   get(".cfr_coherent_tree_survival")
 } else {
-  getFromNamespace(".cfr_coherent_tree_survival", "cureforest")
+  getFromNamespace(".cfr_coherent_tree_survival", "curelearning")
 }
 coherent_first <- coherence_helper(matrix(0.20, 1, 1), 0.70)
 coherent_second <- coherence_helper(matrix(0.80, 1, 1), 0.10)
@@ -132,7 +132,7 @@ stopifnot(
 tree_task_helper <- if (exists(".cfr_tree_task")) {
   get(".cfr_tree_task")
 } else {
-  getFromNamespace(".cfr_tree_task", "cureforest")
+  getFromNamespace(".cfr_tree_task", "curelearning")
 }
 fallback_context <- list(
   x = matrix(seq_len(40), ncol = 1),

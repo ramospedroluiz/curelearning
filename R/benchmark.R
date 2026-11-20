@@ -241,8 +241,8 @@ compare_cureforest <- function(formula,
   )
   rsf_prediction <- stats::predict(
     fit_rsf,
-    newdata = testing,
-    outcome = "test",
+    newdata = testing[, fit_rsf$xvar.names, drop = FALSE],
+    outcome = "train",
     nthread = n.cores
   )
   rsf_survival <- .cfr_benchmark_step_survival(
@@ -455,8 +455,8 @@ compare_forest_fits <- function(cure_fit,
   )
   rsf_prediction <- stats::predict(
     rsf_fit,
-    newdata = newdata,
-    outcome = "test",
+    newdata = newdata[, rsf_fit$xvar.names, drop = FALSE],
+    outcome = "train",
     nthread = n.cores
   )
   rsf_survival <- .cfr_benchmark_step_survival(
@@ -585,7 +585,7 @@ cureforest_demo <- function(ntree = 200L,
   data_environment <- new.env(parent = emptyenv())
   utils::data(
     "cure_latency_demo",
-    package = "cureforest",
+    package = "curelearning",
     envir = data_environment
   )
   formula <- stats::as.formula(
